@@ -66,3 +66,6 @@ while True:
 
     pygame.display.update()
     clock.tick(60)
+
+"""For now , The code is very simple and Tiny
+I'll be adding other features in Future
