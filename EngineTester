@@ -1,0 +1,53 @@
+import PyGameEngine as Engine
+import pygame, sys, random
+from pygame.locals import *
+
+pygame.init()
+
+width = 600  # 1920
+height = 600  # 1080
+fps = 60
+
+# Screen Settings
+bg, window = Engine.Background(width, height, fps), Engine.Window(width, height, fps)  # width, height, fps
+window.set_window()
+clock = window.set_clock()
+screen, screen_rect = window.win_return()
+screen_centre = screen_rect.center
+
+# Sprites
+player_sprite = r"YOUR IMAGE LOCATION HERE"
+bg_img = r"YOUR IMAGE LOCATION HERE"
+
+# Entity Attributes
+player_x, player_y = screen_centre[0] - 24, screen_centre[0] - 60    # To Keep Sprite.centre at the middle of Screen
+air_timer = 20
+player_gravity = 1      # The strength of Gravity(Must be Int , instead of Float)
+vel_x, vel_y = 6, 5
+
+# Entity Settings
+white = (200, 200, 200)
+
+player = Engine.Entity(player_x, player_y, vel_x, vel_y, player_gravity)
+player.sprite_load(player_sprite), player.sprite_resize(48, 120)
+player_rect = player.entity_rect()
+
+recto = Engine.Entity.solid_entity.create_custom_rect(100, 100, 25, 25)
+
+boba = (player_rect.bottom + 1)
+colour = (255, 255, 255)
+gravity = True          # True = Free-walk (like Minecraft Creative Mode) || False = Flying Disabled
+
+while True:
+    # colour = colorful()
+    bg.Image(bg_img)
+    # bg.solid_color(200, 200, 200)
+    player.get_input(), player.grav_imp(), player.move(True)
+
+    pygame.draw.line(screen, colour, (0, boba), (width, boba))
+    player.Render.render_sprite(player)
+    Engine.Entity.Render.render_rect(recto, white)
+
+    window.ifQuit()
+    pygame.display.update()
+    clock.tick(60)
