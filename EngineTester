@@ -1,4 +1,4 @@
-import PyGameEngine as Engine
+import PyEngine as Engine       #PyEngine can be changed to the Engine File Name, but make sure they both are in the SAME FOLDER!
 import pygame, sys, random
 from pygame.locals import *
 
