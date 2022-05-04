@@ -1,6 +1,6 @@
 # Before Installing , Open CMD (make sure you have pip installed) and type "pip install pygame"
 
-import pygame, sys, random
+import pygame, sys, random, copy
 from pygame.locals import *
 from pygame import mixer
 
@@ -26,11 +26,19 @@ class Window:
         screen_rect = screen.get_rect()
 
     def win_return(self):
-        return screen, screen_rect
+        return [screen, screen_rect]
 
     def set_clock(self):
         clock = pygame.time.Clock()
         return clock
+
+    def ifQuit(self):
+        keys = pygame.key.get_pressed()
+        for ev in pygame.event.get():
+            if ev.type == QUIT or keys[pygame.K_ESCAPE]:
+                print("\nFrom the Maker :- Thanks for using PyEngine")
+                pygame.quit()
+                sys.exit()
 
 
 class Background(Window):
@@ -49,12 +57,16 @@ class Background(Window):
         self.red = red
         self.green = green
         self.blue = blue
-        self.screen.fill((red, green, blue))
+        screen, screen_rect = Window.win_return(self)
+        screen.fill((red, green, blue))
 
     def Image(self, image):
-        # try:
         screen, screen_rect = Window.win_return(self)
-        self.image = pygame.image.load(image)
+        try:
+            self.image = pygame.image.load(image)
+        except FileNotFoundError:
+            raise Exception("DUMBA**, I CANT FIND YOUR DAMN FILE!!")
+
         self.image_size = [self.image.get_width(), self.image.get_height()]
         if (self.image_size[0] == self.WIDTH) and (self.image_size[1] == self.HEIGHT):
             self.screen.blit(image, [0, 0])
@@ -72,24 +84,44 @@ class Background(Window):
     #     raise Exception("Please Enter the File Location!")
 
 
-class Entity():
-    def __init__(self, x, y, vel_x, vel_y, sprite):
+class Entity:
+    def __init__(self, x, y, vel_x, vel_y, g_pull):
         self.x = x
         self.y = y
-        self.vel_x = vel_x
-        self.vel_y = vel_y
+        self.vel_x = int(vel_x)
+        self.vel_y = int(vel_y)
+        self.g_pull = int(g_pull)
+        self.jumpAcc = 2.25
+        self.temp_vel_y = int(self.vel_y * self.jumpAcc)
         self.screen2, self.screen_rect2 = Window.win_return(self)
-        self.screen_size2 = (self.screen2.get_width(), self.screen2.get_height())
+        self.screen_size2 = [self.screen2.get_width(), self.screen2.get_height()]
+        self.isGrav = False
 
-        try:
-            self.sprite = sprite
-        except:
-            raise Exception("Please Enter The Sprite File!")
+        self.render = self.Render()
 
         self.up = False
         self.down = False
         self.left = False
         self.right = False
+        self.jump = False
+
+    # def return_all(self):
+    #     return [self.x, self.y, self.vel_x, self.vel_y]
+
+    class solid_entity:
+        def __init__(self):
+            pass
+
+        def create_sprite_rect(ent, par):
+            x = par.x
+            y = par.y
+            # ax = Entity.solid_entity.return_rect_att(ent)
+            rect_entity = pygame.Rect(par.x, par.y, ent.width, ent.height)
+            return rect_entity
+
+        def create_custom_rect(rect_x, rect_y, rect_w, rect_h):
+            rect_entity = pygame.Rect(rect_x, rect_y, rect_w, rect_h)
+            return rect_entity
 
     def get_input(self):
         keys = pygame.key.get_pressed()
@@ -102,47 +134,83 @@ class Entity():
 
         if keys[pygame.K_s] or keys[pygame.K_DOWN]:
             self.up, self.down = False, True
-        elif keys[pygame.K_w] or keys[pygame.K_UP]:
+        elif keys[pygame.K_w] or keys[pygame.K_UP] or keys[pygame.K_SPACE]:
             self.up, self.down = True, False
         else:
             self.up, self.down = False, False
 
         return self.left, self.right, self.up, self.down
 
-    def move(self):
-        if self.left == True:
-            self.x -= self.vel_x
-        if self.right == True:
-            self.x += self.vel_x
+    def sprite_load(self, sprite):
+        try:
+            self.sprite = sprite
+        except:
+            raise Exception("Please Enter The Sprite File!")
 
-        if self.up == True:
-            self.y -= self.vel_y
-        if self.down == True:
-            self.y += self.vel_y
+        self.img = pygame.image.load(self.sprite)
+        self.img_size = (self.img.get_width(), self.img.get_height())
+        # return img, img_size
 
-    def render(self):
-        self.bad_img = pygame.image.load(self.sprite)
-        self.image_height, self.image_width = 50, 50
-        self.sprite_size = (self.image_height, self.image_width)
+    def sprite_resize(self, img_width, img_height):
+        self.img_width, self.img_height = img_width, img_height
+        self.bad_img = self.img
+        self.img_size = (img_width, img_height)
 
-        self.img = pygame.transform.scale(self.bad_img, self.sprite_size)
-        self.screen2.blit(self.img, [self.x, self.y])
+        self.md_img = pygame.transform.scale(self.bad_img, self.img_size)
+        self.img = self.md_img
+        # return img
+
+    def return_ImgAtt(self):
+        return [self.img, self.img.get_rect()]
+
+    def entity_rect(self):
+        self.entity_rect = self.img.get_rect()
+        self.entity_rect.x, self.entity_rect.y = self.x, self.y
+        return self.entity_rect
+
+    def move(self, is_gravity_enabled):
+        self.isGrav = is_gravity_enabled
+
+        if self.left == True and (self.entity_rect.left >= 0):
+            self.entity_rect.x -= self.vel_x
+        elif self.right == True and (self.entity_rect.right <= self.screen_size2[0]):
+            self.entity_rect.x += self.vel_x
+
+        if self.up == True and (self.entity_rect.top >= 0) and (self.isGrav == False):
+            self.entity_rect.y -= self.vel_y
+
+        elif self.up == True and self.isGrav == True and self.jump == False:
+            self.jump = True
+
+        if self.down == True and (self.entity_rect.bottom <= self.screen_size2[1]) and (self.isGrav == False):
+            self.entity_rect.y += self.vel_y
+
+    def grav_imp(self):
+        if self.jump:
+            self.entity_rect.y -= int(self.temp_vel_y * self.jumpAcc)  # 10
+            self.temp_vel_y -= self.g_pull  # 5 -= 1
+            if self.temp_vel_y < self.vel_y * self.jumpAcc * -1:
+                self.jump = False
+                self.temp_vel_y = int(self.vel_y * self.jumpAcc)
+
+    def render_temp(self):
+        self.screen2.blit(self.img, [self.entity_rect.x, self.entity_rect.y])
+
+    class Render:
+        def __init__(self):
+            # self.img = ent.return_ImgAtt(self)
+            # self.ent_rect = ent.Entity_rect(self)
+            self.screen2 = Window.win_return(self)
+
+        def render_sprite(entity):
+            entity.screen2.blit(entity.img, [entity.entity_rect.x, entity.entity_rect.y])
+
+        def render_rect(rect, color):
+            surf = Window.win_return(rect)[0]
+            pygame.draw.rect(surf, color, rect)
 
 
-'''player = Entity(100, 100, 3, 3, "I_Am_The_One_Who_Codes.jpg")  # x, y, vel_x, vel_y, sprite
-background = Background()
-while True:
-    background.Image("I_Am_The_One_Who_Codes.jpg")
-    keys = pygame.key.get_pressed()
-    for ev in pygame.event.get():
-        if ev.type == QUIT or keys[pygame.K_ESCAPE]:
-            pygame.quit()
-            sys.exit()
-
-    player.render()
-
-    pygame.display.update()
-    clock.tick(60) '''
 
 """For now , The code is very simple and Tiny
 I'll be adding other features in Future """
+
