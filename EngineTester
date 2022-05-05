@@ -39,7 +39,6 @@ colour = (255, 255, 255)
 gravity = True          # True = Free-walk (like Minecraft Creative Mode) || False = Flying Disabled
 
 while True:
-    # colour = colorful()
     bg.Image(bg_img)
     # bg.solid_color(200, 200, 200)
     player.get_input(), player.grav_imp(), player.move(True)
